@@ -118,9 +118,7 @@ class Storage(metaclass=ABCMeta):
         """
         Method for determining whether an object is contained within this storage.
         """
-        if not isinstance(obj, str):
-            return False
-        return obj in self.flows
+        return False if not isinstance(obj, str) else obj in self.flows
 
     def build(self) -> "Storage":
         """

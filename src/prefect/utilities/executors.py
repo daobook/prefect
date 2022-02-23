@@ -726,12 +726,13 @@ def flatten_mapped_children(
     counts = executor.wait(
         [executor.submit(lambda c: len(c._result.value), c) for c in mapped_children]
     )
-    new_states = []
+    new_states = [
+        [
+            executor.submit(_build_flattened_state, child, i)
+            for i in range(count)
+        ]
+        for child, count in zip(mapped_children, counts)
+    ]
 
-    for child, count in zip(mapped_children, counts):
-        new_states.append(
-            [executor.submit(_build_flattened_state, child, i) for i in range(count)]
-        )
 
-    flattened_states = [i for s in new_states for i in s]
-    return flattened_states
+    return [i for s in new_states for i in s]

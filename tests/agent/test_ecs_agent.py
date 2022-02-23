@@ -163,7 +163,7 @@ def test_boto_kwargs(monkeypatch):
 def test_agent_defaults(default_task_definition):
     agent = ECSAgent()
     assert agent.agent_config_id is None
-    assert set(agent.labels) == set()
+    assert not set(agent.labels)
     assert agent.name == "agent"
     assert agent.cluster is None
     assert agent.launch_type == "FARGATE"

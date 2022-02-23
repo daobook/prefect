@@ -125,8 +125,7 @@ def flows(name, version, project, output):
 
     result = Client().graphql(query)
 
-    flow_data = result.data.flow
-    if flow_data:
+    if flow_data := result.data.flow:
         display_output(flow_data[0].to_dict(), output=output)
     else:
         click.secho("{} not found".format(name), fg="red")
@@ -193,9 +192,7 @@ def tasks(name, version, project, output):
         click.secho("{} not found".format(name), fg="red")
         return
 
-    task_data = flow_data[0].tasks
-
-    if task_data:
+    if task_data := flow_data[0].tasks:
         display_output(task_data.to_list(), output=output)
     else:
         click.secho("No tasks found for flow {}".format(name), fg="red")
@@ -246,9 +243,7 @@ def flow_runs(name, flow_name, output):
 
     result = Client().graphql(query)
 
-    flow_run_data = result.data.flow_run
-
-    if flow_run_data:
+    if flow_run_data := result.data.flow_run:
         display_output(flow_run_data[0].to_dict(), output=output)
     else:
         click.secho("{} not found".format(name), fg="red")

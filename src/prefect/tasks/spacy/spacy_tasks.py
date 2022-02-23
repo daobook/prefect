@@ -81,9 +81,7 @@ class SpacyNLP(Task):
         Returns:
             - Doc: spaCy document
         """
-        doc = self.nlp(text)
-
-        return doc
+        return self.nlp(text)
 
 
 class SpacyTagger(Task):

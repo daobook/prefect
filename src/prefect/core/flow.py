@@ -238,7 +238,7 @@ class Flow:
         """
         new = copy.copy(self)
         # create a new cache
-        new._cache = dict()
+        new._cache = {}
         new.constants = self.constants.copy()
         new.tasks = self.tasks.copy()
         new.edges = self.edges.copy()
@@ -389,7 +389,7 @@ class Flow:
         Returns:
             - set of Task objects that have no upstream dependencies
         """
-        return set(t for t in self.tasks if not self.edges_to(t))
+        return {t for t in self.tasks if not self.edges_to(t)}
 
     @cache
     def terminal_tasks(self) -> Set[Task]:
@@ -399,7 +399,7 @@ class Flow:
         Returns:
             - set of Task objects that have no downstream dependencies
         """
-        return set(t for t in self.tasks if not self.edges_from(t))
+        return {t for t in self.tasks if not self.edges_from(t)}
 
     def parameters(self) -> Set[Parameter]:
         """
@@ -672,14 +672,9 @@ class Flow:
         Returns:
             - A list of Edge objects added to the flow
         """
-        edges = []
-        for u_task, d_task in zip(tasks, tasks[1:]):
-            edges.append(
-                self.add_edge(
+        return [self.add_edge(
                     upstream_task=u_task, downstream_task=d_task, validate=validate
-                )
-            )
-        return edges
+                ) for u_task, d_task in zip(tasks, tasks[1:])]
 
     def update(
         self,
@@ -810,7 +805,7 @@ class Flow:
         Returns:
             - set of Task objects which are upstream of `task`
         """
-        return set(e.upstream_task for e in self.edges_to(task))
+        return {e.upstream_task for e in self.edges_to(task)}
 
     def downstream_tasks(self, task: Task) -> Set[Task]:
         """
@@ -822,7 +817,7 @@ class Flow:
         Returns:
             - set of Task objects which are downstream of `task`
         """
-        return set(e.downstream_task for e in self.edges_from(task))
+        return {e.downstream_task for e in self.edges_from(task)}
 
     def validate(self) -> None:
         """
@@ -1117,13 +1112,14 @@ class Flow:
                         )
 
                 earliest_start = min(
-                    [
+                    (
                         s.start_time
                         for s in task_states
                         if s.is_scheduled() and s.start_time is not None
-                    ],
+                    ),
                     default=pendulum.now("utc"),
                 )
+
 
                 # wait until first task is ready for retry
                 now = pendulum.now("utc")
@@ -1163,13 +1159,12 @@ class Flow:
                     prefect.context.caches[t.cache_key or t.name] = fresh_states
 
             try:
-                if run_on_schedule and self.schedule is not None:
-                    next_run_event = self.schedule.next(1, return_events=True)[0]
-                    next_run_time = next_run_event.start_time  # type: ignore
-                    parameters = base_parameters.copy()
-                    parameters.update(next_run_event.parameter_defaults)  # type: ignore
-                else:
+                if not run_on_schedule or self.schedule is None:
                     break
+                next_run_event = self.schedule.next(1, return_events=True)[0]
+                next_run_time = next_run_event.start_time  # type: ignore
+                parameters = base_parameters.copy()
+                parameters.update(next_run_event.parameter_defaults)  # type: ignore
             except IndexError:
                 # Handle when there are no more events on schedule
                 break
@@ -1236,11 +1231,9 @@ class Flow:
             if p.name in kwargs:
                 parameters[p.name] = kwargs.pop(p.name)
 
-        # check for parameters that don't match the flow
-        unknown_params = [
+        if unknown_params := [
             p for p in parameters if p not in {fp.name for fp in self.parameters()}
-        ]
-        if unknown_params:
+        ]:
             fmt_params = ", ".join(unknown_params)
             raise ValueError(
                 "Flow.run received the following unexpected parameters: {}".format(
@@ -1248,11 +1241,11 @@ class Flow:
                 )
             )
 
-        # check for parameters that are required by the flow, but weren't passed
-        missing_params = [
-            p.name for p in self.parameters() if p.required and p.name not in parameters
-        ]
-        if missing_params:
+        if missing_params := [
+            p.name
+            for p in self.parameters()
+            if p.required and p.name not in parameters
+        ]:
             fmt_params = ", ".join(missing_params)
             raise ValueError(
                 "Flow.run did not receive the following required parameters: {}".format(
@@ -1337,7 +1330,7 @@ class Flow:
                 state = flow_state.result.get(task)
             if state is not None:
                 assert state is not None  # mypy assert
-                return state.color + "80"
+                return f'{state.color}80'
             return "#00000080"
 
         graph = graphviz.Digraph()
@@ -1700,7 +1693,7 @@ class Flow:
 
         client = prefect.Client()
 
-        registered_flow = client.register(
+        return client.register(
             flow=self,
             build=build,
             project_name=project_name,
@@ -1709,7 +1702,6 @@ class Flow:
             no_url=no_url,
             idempotency_key=idempotency_key,
         )
-        return registered_flow
 
     def __mifflin__(self) -> None:  # coverage: ignore
         "Calls Dunder Mifflin"

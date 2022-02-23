@@ -131,8 +131,7 @@ def create_flow_run(
 
     # Generate a 'sub-flow' run name
     if not run_name:
-        current_run = prefect.context.get("flow_run_name")
-        if current_run:
+        if current_run := prefect.context.get("flow_run_name"):
             run_name = f"{current_run}-{flow.name}"
 
     # A run name for logging display; robust to 'run_name' being empty
@@ -266,14 +265,13 @@ def wait_for_flow_run(
     # Get the final view of the flow run
     flow_run = flow_run.get_latest()
 
-    if raise_final_state:
-        state_signal = signal_from_state(flow_run.state)(
-            message=f"{flow_run_id} finished in state {flow_run.state}",
-            result=flow_run,
-        )
-        raise state_signal
-    else:
+    if not raise_final_state:
         return flow_run
+    state_signal = signal_from_state(flow_run.state)(
+        message=f"{flow_run_id} finished in state {flow_run.state}",
+        result=flow_run,
+    )
+    raise state_signal
 
 
 # Legacy -------------------------------------------------------------------------------

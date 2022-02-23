@@ -122,13 +122,7 @@ class DatabricksHook:
             assert h._parse_host('xx.cloud.databricks.com') == 'xx.cloud.databricks.com'
 
         """
-        urlparse_host = urlparse(host).hostname
-        if urlparse_host:
-            # In this case, host = https://xx.cloud.databricks.com
-            return urlparse_host
-        else:
-            # In this case, host = xx.cloud.databricks.com
-            return host
+        return urlparse_host if (urlparse_host := urlparse(host).hostname) else host
 
     def _do_api_call(self, endpoint_info, json):
         """
@@ -167,7 +161,7 @@ class DatabricksHook:
         elif method == "PATCH":
             request_func = requests.patch
         else:
-            raise PrefectException("Unexpected HTTP Method: " + method)
+            raise PrefectException(f'Unexpected HTTP Method: {method}')
 
         attempt_num = 1
         while True:
@@ -365,5 +359,5 @@ class _TokenAuth(AuthBase):
         self.token = token
 
     def __call__(self, r):
-        r.headers["Authorization"] = "Bearer " + self.token
+        r.headers["Authorization"] = f'Bearer {self.token}'
         return r

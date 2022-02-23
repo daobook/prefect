@@ -158,12 +158,15 @@ class CubeJSQueryTask(Task):
 
         self.logger.debug(f"Query URL: {query_api_url}")
 
-        secret = api_secret if api_secret else os.environ[api_secret_env_var]
+        secret = api_secret or os.environ[api_secret_env_var]
 
         if security_context:
 
             extended_context = security_context
-            if "exp" not in security_context and "expiresIn" not in security_context:
+            if (
+                "exp" not in extended_context
+                and "expiresIn" not in extended_context
+            ):
                 extended_context["expiresIn"] = "7d"
             api_token = jwt.encode(
                 payload=extended_context, key=secret, algorithm="HS256"
@@ -191,26 +194,27 @@ class CubeJSQueryTask(Task):
             with session.get(url=query_api_url, params=params) as response:
                 self.logger.debug(f"URL is: {response.url}")
 
-                if response.status_code == 200:
-                    data = response.json()
-
-                    if "error" in data.keys() and "Continue wait" in data["error"]:
-                        msg = (
-                            "Cube.js load API still running."
-                            "Waiting {wait_api_call_secs} seconds before retrying"
-                        )
-                        self.logger.info(msg)
-                        time.sleep(wait_api_call_secs)
-                        elapsed_wait_time += wait_api_call_secs
-                        continue
-
-                    else:
-                        return data
-
-                else:
+                if response.status_code != 200:
                     raise FAIL(
                         message=f"Cube.js load API failed! Error is: {response.reason}"
                     )
+
+                data = response.json()
+
+                if (
+                    "error" not in data.keys()
+                    or "Continue wait" not in data["error"]
+                ):
+                    return data
+
+                msg = (
+                    "Cube.js load API still running."
+                    "Waiting {wait_api_call_secs} seconds before retrying"
+                )
+                self.logger.info(msg)
+                time.sleep(wait_api_call_secs)
+                elapsed_wait_time += wait_api_call_secs
+                continue
 
         raise FAIL(
             message=f"Cube.js load API took longer than {max_wait_time} seconds to provide a response."

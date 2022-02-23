@@ -122,11 +122,7 @@ class ZendeskTicketsIncrementalExportTask(Task):
             )
 
         token = None
-        if api_token:
-            token = api_token
-        elif api_token_env_var:
-            token = os.environ[api_token_env_var]
-
+        token = api_token or os.environ[api_token_env_var]
         if not subdomain:
             raise ValueError("`subdomain` is missing.")
 

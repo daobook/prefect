@@ -207,13 +207,11 @@ class CloudTaskRunner(TaskRunner):
 
         if self.task.cache_for is not None:
             oldest_valid_cache = datetime.datetime.utcnow() - self.task.cache_for
-            cached_states = self.client.get_latest_cached_states(
+            if cached_states := self.client.get_latest_cached_states(
                 task_id=prefect.context.get("task_id", ""),
                 cache_key=self.task.cache_key,
                 created_after=oldest_valid_cache,
-            )
-
-            if cached_states:
+            ):
                 self.logger.debug(
                     "Task '{name}': {num} candidate cached states were found".format(
                         name=prefect.context.get("task_full_name", self.task.name),
