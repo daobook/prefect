@@ -16,10 +16,11 @@ def create_node(state):
         graph.node(
             str(id(state)),
             state.__name__,
-            color=state.color + "99",
+            color=f'{state.color}99',
             style="filled",
             colorscheme="svg",
         )
+
         state_nodes.add(state)
 
 

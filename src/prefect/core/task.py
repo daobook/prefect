@@ -73,8 +73,7 @@ def _validate_run_signature(run: Callable) -> None:
         )
 
     reserved_kwargs = ["upstream_tasks", "mapped", "task_args", "flow"]
-    violations = [kw for kw in reserved_kwargs if kw in run_sig.args]
-    if violations:
+    if violations := [kw for kw in reserved_kwargs if kw in run_sig.args]:
         msg = "Tasks cannot have the following argument names: {}.".format(
             ", ".join(violations)
         )
@@ -452,9 +451,10 @@ class Task(metaclass=TaskMetaclass):
         # if new task creations are being tracked, add this task
         # this makes it possible to give guidance to users that forget
         # to add tasks to a flow
-        if "_unused_task_tracker" in prefect.context:
-            if not isinstance(self, prefect.tasks.core.constants.Constant):
-                prefect.context._unused_task_tracker.add(self)
+        if "_unused_task_tracker" in prefect.context and not isinstance(
+            self, prefect.tasks.core.constants.Constant
+        ):
+            prefect.context._unused_task_tracker.add(self)
 
     def __repr__(self) -> str:
         return "<Task: {self.name}>".format(self=self)
@@ -525,7 +525,7 @@ class Task(metaclass=TaskMetaclass):
         new = copy.copy(self)
 
         if new.slug and "slug" not in task_args:
-            task_args["slug"] = new.slug + "-copy"
+            task_args["slug"] = f'{new.slug}-copy'
 
         # check task_args
         for attr, val in task_args.items():
@@ -673,12 +673,10 @@ class Task(metaclass=TaskMetaclass):
         signature = inspect.signature(self.run)
         callargs = dict(signature.bind(*args, **kwargs).arguments)  # type: Dict
 
-        # bind() compresses all variable keyword arguments under the ** argument name,
-        # so we expand them explicitly
-        var_kw_arg = next(
-            (p for p in signature.parameters.values() if p.kind == VAR_KEYWORD), None
-        )
-        if var_kw_arg:
+        if var_kw_arg := next(
+            (p for p in signature.parameters.values() if p.kind == VAR_KEYWORD),
+            None,
+        ):
             callargs.update(callargs.pop(var_kw_arg.name, {}))
 
         flow = flow or prefect.context.get("flow", None)

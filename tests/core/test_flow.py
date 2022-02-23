@@ -169,10 +169,8 @@ class TestCreateFlow:
 
         assert res.auto_generated is False
         assert all(
-            [
-                t.auto_generated is True
-                for t in f.get_tasks(task_type=prefect.tasks.core.constants.Constant)
-            ]
+            t.auto_generated is True
+            for t in f.get_tasks(task_type=prefect.tasks.core.constants.Constant)
         )
 
 
@@ -1496,10 +1494,11 @@ class TestFlowVisualize:
             )
 
         assert "{first} -> {second} [label=x style=dashed]".format(
-            first=str(id(first_res)) + "0", second=str(id(res)) + "0"
+            first=f'{id(first_res)}0', second=f'{id(res)}0'
         )
+
         assert "{first} -> {second} [label=x style=dashed]".format(
-            first=str(id(first_res)) + "1", second=str(id(res)) + "1"
+            first=f'{id(first_res)}1', second=f'{id(res)}1'
         )
 
     @pytest.mark.parametrize(
@@ -2028,11 +2027,10 @@ class TestFlowRunMethod:
                 super().__init__(clocks=[])
 
             def next(self, n, **kwargs):
-                if self.call_count < self.n:
-                    self.call_count += 1
-                    return [ClockEvent(pendulum.now("UTC").add(seconds=0.1))]
-                else:
+                if self.call_count >= self.n:
                     return []
+                self.call_count += 1
+                return [ClockEvent(pendulum.now("UTC").add(seconds=0.1))]
 
         return RepeatSchedule
 
@@ -2236,10 +2234,7 @@ class TestFlowRunMethod:
 
             def run(self):
                 self.call_count += 1
-                if self.maxit:
-                    return max(self.call_count, 2)
-                else:
-                    return self.call_count
+                return max(self.call_count, 2) if self.maxit else self.call_count
 
         @task(
             cache_for=datetime.timedelta(minutes=1),
@@ -2272,10 +2267,7 @@ class TestFlowRunMethod:
 
             def run(self):
                 self.call_count += 1
-                if self.maxit:
-                    return max(self.call_count, 2)
-                else:
-                    return self.call_count
+                return max(self.call_count, 2) if self.maxit else self.call_count
 
         @task(
             cache_for=datetime.timedelta(minutes=1),
@@ -2327,10 +2319,7 @@ class TestFlowRunMethod:
 
             def run(self):
                 self.call_count += 1
-                if self.maxit:
-                    return [max(self.call_count, 2)] * 3
-                else:
-                    return [self.call_count] * 3
+                return [max(self.call_count, 2)] * 3 if self.maxit else [self.call_count] * 3
 
         @task(
             cache_for=datetime.timedelta(minutes=1),

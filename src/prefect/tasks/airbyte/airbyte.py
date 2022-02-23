@@ -76,7 +76,7 @@ class AirbyteConnectionTask(Task):
         super().__init__(**kwargs)
 
     def _check_health_status(self, session, airbyte_base_url):
-        get_connection_url = airbyte_base_url + "/health/"
+        get_connection_url = f'{airbyte_base_url}/health/'
         try:
             response = session.get(get_connection_url)
             self.logger.info(response.json())
@@ -91,7 +91,7 @@ class AirbyteConnectionTask(Task):
             raise AirbyteServerNotHealthyException(e)
 
     def _get_connection_status(self, session, airbyte_base_url, connection_id):
-        get_connection_url = airbyte_base_url + "/connections/get/"
+        get_connection_url = f'{airbyte_base_url}/connections/get/'
 
         # TODO - Missing authentication because Airbyte servers currently do not support authentication
         try:
@@ -147,7 +147,7 @@ class AirbyteConnectionTask(Task):
         Returns: created_at - timestamp of sync job creation
 
         """
-        get_connection_url = airbyte_base_url + "/connections/sync/"
+        get_connection_url = f'{airbyte_base_url}/connections/sync/'
 
         # TODO - missing authentication ...
         try:
@@ -173,7 +173,7 @@ class AirbyteConnectionTask(Task):
             raise AirbyteServerNotHealthyException(e)
 
     def _get_job_status(self, session, airbyte_base_url, job_id):
-        get_connection_url = airbyte_base_url + "/jobs/get/"
+        get_connection_url = f'{airbyte_base_url}/jobs/get/'
         try:
             response = session.post(get_connection_url, json={"id": job_id})
             if response.status_code == 200:

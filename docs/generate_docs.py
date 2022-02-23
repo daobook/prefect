@@ -118,12 +118,7 @@ def load_outline(
 def preprocess(f, remove_partial=True):
     def wrapped(*args, **kwargs):
         new_obj = getattr(args[0], "__wrapped__", args[0])
-        if not isinstance(new_obj, partial):
-            new_obj = getattr(new_obj, "func", new_obj)
-        elif isinstance(new_obj, partial) and remove_partial:
-            # because partial sets kwargs in the signature, we dont always
-            # want that stripped for call signature inspection but we _do_
-            # for doc inspection
+        if not isinstance(new_obj, partial) or remove_partial:
             new_obj = getattr(new_obj, "func", new_obj)
         new_args = list(args)
         new_args[0] = new_obj
@@ -172,10 +167,8 @@ def format_lists(doc):
         args = re.split(r"-\s+(.*?)\:(?![^{]*\})", items)  # collect all list items
         if not args:
             continue
-        block = ""
         list_items = zip(args[1::2], args[2::2])
-        for item, descr in list_items:
-            block += f"{li_tag}`{item}`:{descr}</li>"
+        block = "".join(f"{li_tag}`{item}`:{descr}</li>" for item, descr in list_items)
         list_block = f"{ul_tag}{block}</ul>"
         doc = doc.replace(items + "\n", list_block, 1).replace(items, list_block, 1)
     return doc.replace("\n\nRaises:", "Raises:")
@@ -205,10 +198,7 @@ def format_doc(obj, in_table=False):
                 + "</code></pre>"
             )
         cleaned = cleaned.replace(f"$CODEBLOCK{num}", block.rstrip(" "))
-    if in_table:
-        return f'<p class="methods">{cleaned}</p>'
-    else:
-        return cleaned
+    return f'<p class="methods">{cleaned}</p>' if in_table else cleaned
 
 
 def create_methods_table(members, title):
@@ -230,10 +220,10 @@ def create_commands_table(commands):
     for cmd in commands:
         full_commands.append((cmd.name, cmd))
         if hasattr(cmd, "commands"):
-            for subcommand in sorted(cmd.commands):
-                full_commands.append(
-                    (f"{cmd.name} {subcommand}", cmd.commands[subcommand])
-                )
+            full_commands.extend(
+                (f"{cmd.name} {subcommand}", cmd.commands[subcommand])
+                for subcommand in sorted(cmd.commands)
+            )
 
     items = []
     for name, cmd in full_commands:
@@ -308,7 +298,7 @@ def create_absolute_path(obj):
     begins_at = dir_struct.index(first_dir) + offset
     filename = dir_struct.pop(-1)
     dir_struct.append(filename[:-3] if filename.endswith(".py") else filename)
-    path = ".".join([d for d in dir_struct[begins_at:]])
+    path = ".".join(list(dir_struct[begins_at:]))
     return f"{path}.{obj.__qualname__}"
 
 
@@ -326,8 +316,7 @@ def get_source(obj):
         line_no = inspect.getsourcelines(obj)[1]
         url_ending = "/".join(dir_struct[begins_at:]) + f"#L{line_no}"
         link = f'<a href="{base_url}{url_ending}">[source]</a>'
-    source_tag = f'<span class="source">{link}</span>'
-    return source_tag
+    return f'<span class="source">{link}</span>'
 
 
 @preprocess(remove_partial=False)
@@ -343,10 +332,10 @@ def format_subheader(obj, level=1, in_table=False):
     class_name = f'<p class="prefect-class">{create_absolute_path(obj)}</p>'
     div_class = "class-sig" if is_class else "method-sig"
     block_id = slugify(create_absolute_path(obj)) or obj.__name__
-    div_tag = f"<div class='{div_class}' id='{'method' + block_id if block_id[0] == '-' else block_id}'>"
+    div_tag = f"""<div class='{div_class}' id='{f"method{block_id}" if block_id[0] == "-" else block_id}'>"""
 
-    call_sig = f" {header} {div_tag}{is_class}{class_name}({class_sig}){get_source(obj)}</div>\n\n"
-    return call_sig
+
+    return f" {header} {div_tag}{is_class}{class_name}({class_sig}){get_source(obj)}</div>\n\n"
 
 
 def get_class_methods(obj, methods=None):
@@ -354,17 +343,15 @@ def get_class_methods(obj, methods=None):
         # Skip mocked classes so these tests pass for optional requirements
         return []
 
-    if methods is None:
-        members = inspect.getmembers(
-            obj,
-            predicate=lambda x: inspect.isroutine(x) and obj.__name__ in x.__qualname__,
-        )
-        public_members = [
+    if methods is not None:
+        return [getattr(obj, m) for m in methods]
+    members = inspect.getmembers(
+        obj,
+        predicate=lambda x: inspect.isroutine(x) and obj.__name__ in x.__qualname__,
+    )
+    return [
             method for (name, method) in members if not name.startswith("_")
         ]
-        return public_members
-    else:
-        return [getattr(obj, m) for m in methods]
 
 
 EXAMPLE_TEMPLATE = """
@@ -450,10 +437,12 @@ def build_example(path):
     )
     output = res.stdout.decode("utf-8").strip()
 
-    register_lines = [f"prefect register --json https://docs.prefect.io/examples.json"]
-    for name in sorted(flows):
-        register_lines.append(f"    --name {name!r}")
-    register_lines.append(f"    --project 'Prefect Examples'")
+    register_lines = [
+        'prefect register --json https://docs.prefect.io/examples.json'
+    ]
+
+    register_lines.extend(f"    --name {name!r}" for name in sorted(flows))
+    register_lines.append("    --project 'Prefect Examples'")
 
     rendered = EXAMPLE_TEMPLATE.format(
         header=header,
@@ -479,9 +468,7 @@ def process_examples(footer=""):
                 "Example flows must have unique names, found duplicate flows: {conflicts}"
             )
         flows.update(new_flows)
-        with open(
-            os.path.join("core", "examples", filename + ".md"), "w", encoding="utf-8"
-        ) as f:
+        with open(os.path.join("core", "examples", f'{filename}.md'), "w", encoding="utf-8") as f:
             f.write(output)
             f.write(footer)
 
@@ -616,14 +603,12 @@ if __name__ == "__main__":
                 page.get("commands", []),
             )
             fname = f"api/latest/{fname}"
-            directory = os.path.dirname(fname)
-            if directory:
+            if directory := os.path.dirname(fname):
                 os.makedirs(directory, exist_ok=True)
             with open(fname, "w") as f:
                 # PAGE TITLE / SETUP
                 f.write(front_matter)
-                title = page.get("title")
-                if title:  # this would be a good place to have assignments
+                if title := page.get("title"):
                     experimental = page.get("experimental")
                     if experimental:
                         f.write(

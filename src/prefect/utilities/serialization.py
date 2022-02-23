@@ -34,7 +34,7 @@ def to_qualified_name(obj: Any) -> str:
     Returns:
         - str: the qualified name
     """
-    return obj.__module__ + "." + obj.__qualname__
+    return f'{obj.__module__}.{obj.__qualname__}'
 
 
 def from_qualified_name(obj_str: str) -> Any:
@@ -428,13 +428,11 @@ class StatefulFunctionReference(fields.Field):
         for k, v in list(nonlocals.items()):
             # convert dates to strings
             if isinstance(v, datetime.datetime):
-                nonlocals[k] = "//datetime:" + v.isoformat()
-            # convert time to strings
+                nonlocals[k] = f'//datetime:{v.isoformat()}'
             elif isinstance(v, datetime.time):
-                nonlocals[k] = "//time:" + v.isoformat()
-            # convert timedelta to seconds
+                nonlocals[k] = f'//time:{v.isoformat()}'
             elif isinstance(v, datetime.timedelta):
-                nonlocals[k] = "//timedelta:" + str(v.total_seconds())
+                nonlocals[k] = f'//timedelta:{str(v.total_seconds())}'
 
         return {"fn": base_name, "kwargs": nonlocals}
 

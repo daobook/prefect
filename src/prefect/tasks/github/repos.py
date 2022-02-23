@@ -148,15 +148,18 @@ class CreateBranch(Task):
         }
 
         # gather branch information
-        resp = requests.get(url + "/heads", headers=headers)
+        resp = requests.get(f'{url}/heads', headers=headers)
         resp.raise_for_status()
         branch_data = resp.json()
 
-        commit_sha = None
-        for branch in branch_data:
-            if branch.get("ref") == "refs/heads/{}".format(base):
-                commit_sha = branch.get("object", {}).get("sha")
-                break
+        commit_sha = next(
+            (
+                branch.get("object", {}).get("sha")
+                for branch in branch_data
+                if branch.get("ref") == "refs/heads/{}".format(base)
+            ),
+            None,
+        )
 
         if commit_sha is None:
             raise ValueError("Base branch {} not found.".format(base))

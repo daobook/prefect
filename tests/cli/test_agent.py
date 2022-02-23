@@ -183,17 +183,15 @@ def test_agent_local_install(monkeypatch):
     )
 
     expected_kwargs = {
-        "key": None,
-        "tenant_id": None,
-        "labels": ["label1", "label2"],
-        "env_vars": {"KEY1": "VALUE1", "KEY2": "VALUE2"},
-        "import_paths": ["path1", "path2"],
-        "show_flow_logs": True,
-        "agent_config_id": "foo",
+        'labels': ["label1", "label2"],
+        'env_vars': {"KEY1": "VALUE1", "KEY2": "VALUE2"},
+        'import_paths': ["path1", "path2"],
+        'show_flow_logs': True,
+        'agent_config_id': 'foo',
+        'key': 'TEST-KEY',
+        'tenant_id': 'TENANT',
     }
 
-    expected_kwargs["key"] = "TEST-KEY"
-    expected_kwargs["tenant_id"] = "TENANT"
 
     generate = MagicMock(wraps=LocalAgent.generate_supervisor_conf)
     monkeypatch.setattr(
@@ -224,27 +222,25 @@ def test_agent_kubernetes_install(monkeypatch):
     )
 
     expected_kwargs = {
-        "key": "TEST-KEY",
-        "tenant_id": "TENANT",
-        "labels": ["label1", "label2"],
-        "env_vars": {"KEY1": "VALUE1", "KEY2": "VALUE2"},
-        "api": "TEST_API",
-        "namespace": "TEST_NAMESPACE",
-        "rbac": True,
-        "latest": True,
-        "image_pull_secrets": "secret-test",
-        "mem_request": "mem_req",
-        "mem_limit": "mem_lim",
-        "cpu_request": "cpu_req",
-        "cpu_limit": "cpu_lim",
-        "image_pull_policy": "custom_policy",
-        "service_account_name": "svc_name",
-        "backend": "backend-test",
-        "agent_config_id": "foo",
+        'labels': ["label1", "label2"],
+        'env_vars': {"KEY1": "VALUE1", "KEY2": "VALUE2"},
+        'api': 'TEST_API',
+        'namespace': 'TEST_NAMESPACE',
+        'rbac': True,
+        'latest': True,
+        'image_pull_secrets': 'secret-test',
+        'mem_request': 'mem_req',
+        'mem_limit': 'mem_lim',
+        'cpu_request': 'cpu_req',
+        'cpu_limit': 'cpu_lim',
+        'image_pull_policy': 'custom_policy',
+        'service_account_name': 'svc_name',
+        'backend': 'backend-test',
+        'agent_config_id': 'foo',
+        'key': 'TEST-KEY',
+        'tenant_id': 'TENANT',
     }
 
-    expected_kwargs["key"] = "TEST-KEY"
-    expected_kwargs["tenant_id"] = "TENANT"
 
     generate = MagicMock(wraps=KubernetesAgent.generate_deployment_yaml)
     monkeypatch.setattr(
